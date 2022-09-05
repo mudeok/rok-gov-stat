@@ -45,6 +45,7 @@ def get_grayscale(image):
     # Returns image in gray scale mode, easier to extract data
     return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
+
 def get_text(image, locations: List[OCR_LOCATION]) -> List[str]:
     """ For an image, locations refer to all possible data we want to extract.
     Return a list of values extracted from provided locations.
@@ -85,6 +86,7 @@ def get_text(image, locations: List[OCR_LOCATION]) -> List[str]:
 
     return values
 
+
 def parse_folder(folder: str, locations: List[OCR_LOCATION]) -> List[List[str]]:
     """ Parse a folder to retrieve all screenshots inside that folder.
     Then iterate through all screenshot to extract data.
@@ -114,6 +116,7 @@ def parse_folder(folder: str, locations: List[OCR_LOCATION]) -> List[List[str]]:
 
     return files_values
 
+
 def save_data_into_file(filename, data):
     # Save data into an .xlsx file
     d_now = datetime.utcnow()
@@ -123,6 +126,7 @@ def save_data_into_file(filename, data):
     file_destination = os.path.abspath("./%s.xlsx" % (filename))
     pe.save_as(array=data, dest_file_name=file_destination)
 
+
 def get_data(headers: List[str], filename: str, folder_name: str, locations: List[OCR_LOCATION], save=True):
     export_content = []
     export_content.append(headers)
@@ -131,6 +135,7 @@ def get_data(headers: List[str], filename: str, folder_name: str, locations: Lis
     if save is True:
         save_data_into_file(filename, export_content)
     return screenshots
+
 
 def get_id_name_power_kill_points(folder_name: str, locations: List[OCR_LOCATION], save=True):
     export_header = ["ID", "NAME", "POWER", "KILL POINTS"]
@@ -142,6 +147,7 @@ def get_id_name_power_kill_points(folder_name: str, locations: List[OCR_LOCATION
         save=save
     )
 
+
 def get_data_name_deads(folder_name: str, locations: List[OCR_LOCATION], save=True):
     export_header = ["NAME", "DEAD"]
     return get_data(
@@ -152,6 +158,7 @@ def get_data_name_deads(folder_name: str, locations: List[OCR_LOCATION], save=Tr
         save=save
     )
 
+
 def get_data_id_kills(folder_name: str, locations: List[OCR_LOCATION], save=True):
     export_header = ["ID", "KILLS T3", "KILL POINTS T3", "KILLS T4", "KILL POINTS T4", "KILLS T5", "KILL POINTS T5"]
     return get_data(
@@ -161,6 +168,7 @@ def get_data_id_kills(folder_name: str, locations: List[OCR_LOCATION], save=True
         locations,
         save=save
     )
+
 
 def aggregate_data(data_1: List[List[str]], data_2: List[List[str]], data_3: List[List[str]]):
     export_header = [
