@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
+from operator import invert
 from typing import List
 from collections import namedtuple
 import pyexcel as pe
@@ -23,7 +24,12 @@ id_name_power_killpoints = [
 
 name_dead = [
     OCR_LOCATION("name", (1118, 628, 466, 85), False),
+    OCR_LOCATION("power", (1676, 634, 326, 68), True),
+    OCR_LOCATION("kills_points", (2194, 629, 262, 80), True),
     OCR_LOCATION("dead", (1732, 1050, 609, 45), True),
+    OCR_LOCATION("ressource_gathered", (1776, 1263, 571, 58), True),
+    OCR_LOCATION("ressource_assistance", (1776, 1341, 571, 58), True),
+    OCR_LOCATION("alliance_help_times", (1776, 1424, 571, 58), True),
 ]
 
 id_kills = [
@@ -222,8 +228,73 @@ def aggregate_data(data_1: List[List[str]], data_2: List[List[str]], data_3: Lis
     save_data_into_file("rok_gov_stats", export_content)
 
 
-p1 = get_id_name_power_kill_points(folder_id_name_power_killpoints, id_name_power_killpoints, save=False)
-p2 = get_data_name_deads(folder_name_dead, name_dead, save=False)
-p3 = get_data_id_kills(folder_id_kills, id_kills, save=False)
+#p1 = get_id_name_power_kill_points(folder_id_name_power_killpoints, id_name_power_killpoints, save=False)
+#p2 = get_data_name_deads(folder_name_dead, name_dead, save=False)
+#p3 = get_data_id_kills(folder_id_kills, id_kills, save=False)
+#aggregate_data(p1, p2, p3)
 
-aggregate_data(p1, p2, p3)
+
+def get_gov_stats():
+    folder = "rok_gov_ss"
+    folder_path = os.path.abspath(folder)
+    files = sorted(os.listdir(folder_path), reverse=True)
+
+    hm_gov = dict()
+    current_gov_id = None
+
+    for i, a_file in enumerate(files):
+        filename, extension = os.path.splitext(a_file)
+
+        # hack, we skip macos hidden file
+        if filename == ".DS_Store":
+            continue
+        # if not image, we skipp
+        elif extension != ".png" \
+                and extension != ".jpeg" and \
+                extension != ".jpg":
+            continue
+
+        file_path = os.path.abspath(f"{folder}/{a_file}")
+        # we treat the file only if it exists
+        if not os.path.exists(file_path):
+            continue
+        print(f"...processing {file_path}")
+        image = cv2.imread(file_path)
+        # 2 following screenshot should belong to one governor
+        if i % 2 == 0:
+            # ID, NAME, KILLS
+            values = get_text(image, id_kills)
+            current_gov_id = values[0]
+            hm_gov[current_gov_id] = values[1:]
+        else:
+            # NAME, DEADS
+            values = get_text(image, name_dead)
+            if current_gov_id is not None:
+                _old = hm_gov[current_gov_id]
+                hm_gov[current_gov_id] = [current_gov_id] + values + _old
+
+    return hm_gov
+
+
+data = get_gov_stats()
+values = list(data.values())
+export_header = [
+    "ID",
+    "NAME",
+    "POWER",
+    "KILLS POINTS",
+    "DEAD",
+    "RSS GATHERED",
+    "RSS ASSISTANCE",
+    "ALLIANCE HELP",
+    "KILLS T3",
+    "KILL POINTS T3",
+    "KILLS T4",
+    "KILL POINTS T4",
+    "KILLS T5",
+    "KILL POINTS T5",
+]
+export_content = []
+export_content.append(export_header)
+export_content += values
+save_data_into_file("rok_gov_stats", export_content)
