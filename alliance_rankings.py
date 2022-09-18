@@ -14,67 +14,28 @@ TESSERACT_ARGS_NUMBER = "--oem 3 --psm 7 digits -c tessedit_char_whitelist=01234
 TESSERACT_ARGS_TEXT = "--oem 3 --psm 7"
 
 # actually a list of 6 players by screenshot
-players_on_screenshot_scientist = [
+ocr_locations = [
     [
-        # OCR_LOCATION("position", (818, 764, 87, 94), True),
         OCR_LOCATION("name", (790, 740, 695, 63), False),
         OCR_LOCATION("points", (1724, 741, 458, 96), True),
     ],
     [
-        # OCR_LOCATION("position", (818, 902, 87, 94), True),
         OCR_LOCATION("name", (790, 872, 695, 63), False),
         OCR_LOCATION("points", (1724, 872, 458, 96), True),
     ],
     [
-        # OCR_LOCATION("position", (818, 1036, 87, 94), True),
         OCR_LOCATION("name", (790, 1004, 695, 63), False),
         OCR_LOCATION("points", (1724, 1004, 458, 96), True),
     ],
     [
-        # OCR_LOCATION("position", (818, 1169, 87, 94), True),
         OCR_LOCATION("name", (790, 1137, 695, 63), False),
         OCR_LOCATION("points", (1724, 1137, 458, 96), True),
     ],
     [
-        # OCR_LOCATION("position", (818, 1304, 87, 94), True),
         OCR_LOCATION("name", (790, 1270, 695, 63), False),
         OCR_LOCATION("points", (1724, 1270, 458, 96), True),
     ],
     [
-        # OCR_LOCATION("position", (818, 1435, 87, 94), True),
-        OCR_LOCATION("name", (790, 1401, 695, 63), False),
-        OCR_LOCATION("points", (1724, 1401, 458, 96), True),
-    ],
-]
-
-players_on_screenshot_builder_help = [
-    [
-        # OCR_LOCATION("position", (818, 764, 87, 94), True),
-        OCR_LOCATION("name", (790, 740, 695, 63), False),
-        OCR_LOCATION("points", (1724, 741, 458, 96), True),
-    ],
-    [
-        # OCR_LOCATION("position", (818, 902, 87, 94), True),
-        OCR_LOCATION("name", (790, 872, 695, 63), False),
-        OCR_LOCATION("points", (1724, 872, 458, 96), True),
-    ],
-    [
-        # OCR_LOCATION("position", (818, 1036, 87, 94), True),
-        OCR_LOCATION("name", (790, 1004, 695, 63), False),
-        OCR_LOCATION("points", (1724, 1004, 458, 96), True),
-    ],
-    [
-        # OCR_LOCATION("position", (818, 1169, 87, 94), True),
-        OCR_LOCATION("name", (790, 1137, 695, 63), False),
-        OCR_LOCATION("points", (1724, 1137, 458, 96), True),
-    ],
-    [
-        # OCR_LOCATION("position", (818, 1304, 87, 94), True),
-        OCR_LOCATION("name", (790, 1270, 695, 63), False),
-        OCR_LOCATION("points", (1724, 1270, 458, 96), True),
-    ],
-    [
-        # OCR_LOCATION("position", (818, 1435, 87, 94), True),
         OCR_LOCATION("name", (790, 1401, 695, 63), False),
         OCR_LOCATION("points", (1724, 1401, 458, 96), True),
     ],
@@ -131,7 +92,7 @@ def get_text(image, locations: List[OCR_LOCATION]) -> List[str]:
     return values
 
 
-def save_data_into_file(filename, data):
+def save_data_into_file(filename, data) -> None:
     # Save data into an .xlsx file
     d_now = datetime.utcnow()
     date = d_now.strftime('%d_%m_%Y')
@@ -141,7 +102,7 @@ def save_data_into_file(filename, data):
     pe.save_as(array=data, dest_file_name=file_destination)
 
 
-def get_rankings_scientist(folder: str, locations: List[List[OCR_LOCATION]], save=True):
+def get_rankings(folder: str, locations: List[List[OCR_LOCATION]], db, save=False):
     folder_path = os.path.abspath(folder)
     files = os.listdir(folder_path)
     files_values = []
@@ -163,47 +124,60 @@ def get_rankings_scientist(folder: str, locations: List[List[OCR_LOCATION]], sav
             image = cv2.imread(file_path)
             for location in locations:
                 values = get_text(image, location)
+                if len(values) != 2:
+                    continue
+                name = values[0]
+                if name not in db.keys():
+                    db[name] = dict()
+                db[name][folder] = values[1]
                 files_values += [values]
 
-    rankings = []
-    for i, player in enumerate(files_values):
-        rank = i + 1
-        if len(player) == 2:
-            data = [rank] + player
-        else:
-            data = [rank] + player[1:]
-        rankings += [data]
+    if save is True:
+        # this is for debugging just in case
+        save_data_into_file(folder, files_values)
 
-    save_data_into_file("rok_alliance_rankings_scientist", rankings)
+    return db
 
+# hash map of players
+rankings = dict()
+rankings = get_rankings(folder_scientist, ocr_locations, rankings)
+rankings = get_rankings(folder_builder, ocr_locations, rankings)
+rankings = get_rankings(folder_help, ocr_locations, rankings)
 
-def get_rankings(folder: str, locations: List[List[OCR_LOCATION]], export_filename, save=True):
-    folder_path = os.path.abspath(folder)
-    files = os.listdir(folder_path)
-    files_values = []
+export_header = [
+    "NAME",
+    "SCIENTIST PTS",
+    "BUILDER PTS",
+    "HELP PTS",
+]
+export_content = []
+export_content.append(export_header)
 
-    for a_file in files:
-        filename, extension = os.path.splitext(a_file)
+for k in rankings:
+    # colum name
+    name = k
+    a_player = [name]
+    points = rankings[k]
 
-        # hack, we skip macos hidden file
-        if filename == ".DS_Store":
-            continue
-        elif extension != ".png" \
-                and extension != ".jpeg" and \
-                extension != ".jpg":
-            continue
+    # column scientist pts
+    if folder_scientist in points:
+        a_player += [points[folder_scientist]]
+    else:
+        a_player += [0]
 
-        file_path = os.path.abspath(f"{folder}/{a_file}")
-        # we treat the file only if it exists
-        if os.path.exists(file_path):
-            image = cv2.imread(file_path)
-            for location in locations:
-                values = get_text(image, location)
-                files_values += [values]
+    # column builder pts
+    if folder_builder in points:
+        a_player += [points[folder_builder]]
+    else:
+        a_player += [0]
 
-    save_data_into_file(export_filename, files_values)
+    # column help pts
+    if folder_help in points:
+        a_player += [points[folder_help]]
+    else:
+        a_player += [0]
 
+    export_content += [a_player]
 
-get_rankings_scientist(folder_scientist, players_on_screenshot_scientist)
-get_rankings(folder_builder, players_on_screenshot_builder_help, "rok_alliance_rankings_builder")
-get_rankings(folder_help, players_on_screenshot_builder_help, "rok_alliance_rankings_help")
+# we save the final data, need to clean manually for weird name
+save_data_into_file("rok_gov_alliance_rankings", export_content)
