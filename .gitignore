@@ -107,6 +107,10 @@ env.sh
 
 # folder containing screenshot
 rok_ss_*/*
+*.png
+*.jpeg
+*.jpg
+*.numbers
 
 # .xlsx exports
 *.xlsx
