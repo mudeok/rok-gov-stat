@@ -4,6 +4,7 @@ from typing import List
 from collections import namedtuple
 import pyexcel as pe
 import calendar
+import csv
 import cv2
 import pytesseract
 import numpy as np
@@ -130,12 +131,56 @@ def get_gov_stats(folder):
     return hm_gov
 
 
-folder = "FOLDER_NAME"
-data = get_gov_stats(folder)
-values = list(data.values())
+def parse_folder_alliance(folder):
+    data = get_gov_stats(folder)
+    values = list(data.values())
+    export_header = [
+        "ID",
+        "NAME",
+        "POWER",
+        "KILLS POINTS",
+        "DEAD",
+        "RSS GATHERED",
+        "RSS ASSISTANCE",
+        "ALLIANCE HELP",
+        "KILLS T3",
+        "KILLS T4",
+        "KILLS T5",
+    ]
+    export_content = []
+    export_content.append(export_header)
+    export_content += values
+    save_data_into_file(f"rok_gov_stats_{folder}", export_content)
+    return data
+
+
+def import_old_data():
+    history = dict()
+    order_ids = []
+    filename = "data/export.csv"
+    path_filename = os.path.abspath(filename)
+    if not os.path.exists(path_filename):
+        return None, None
+    with open(path_filename, "r") as f:
+        reader = csv.reader(f)
+        for row in reader:
+            player_id = row[0]
+            if player_id == "ID":
+                continue
+            else:
+                player_id = int(player_id)
+            order_ids += [player_id]
+            history[player_id] = row[1:]
+    return history, order_ids
+
+
+history, order_ids = import_old_data()
+
+folder = "alliance_gov_hs"
+data = parse_folder_alliance(folder)
+
 export_header = [
     "ID",
-    "NAME",
     "POWER",
     "KILLS POINTS",
     "DEAD",
@@ -148,5 +193,11 @@ export_header = [
 ]
 export_content = []
 export_content.append(export_header)
-export_content += values
-save_data_into_file(f"rok_gov_stats_{folder}", export_content)
+for player_id in order_ids:
+    player = data.get(player_id, None)
+    if player is None:
+        export_content += [[player_id] + [0] * 9]
+    else:
+        export_content += [[player_id] + player[2:]]
+save_data_into_file(f"rok_gov_stats_{folder}_aggregated", export_content)
+
