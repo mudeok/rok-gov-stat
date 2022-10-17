@@ -90,7 +90,7 @@ def save_data_into_file(filename, data):
     pe.save_as(array=data, dest_file_name=file_destination)
 
 
-def get_gov_stats(folder):
+def get_gov_stats(folder, alliance):
     folder_path = os.path.abspath(folder)
     files = sorted(os.listdir(folder_path), reverse=True)
 
@@ -126,17 +126,18 @@ def get_gov_stats(folder):
             values = get_text(image, name_dead)
             if current_gov_id is not None:
                 _old = hm_gov[current_gov_id]
-                hm_gov[current_gov_id] = [current_gov_id] + values + _old
+                hm_gov[current_gov_id] = [current_gov_id] + [alliance] + values + _old
 
     return hm_gov
 
 
-def parse_folder_alliance(folder):
-    data = get_gov_stats(folder)
+def parse_folder_alliance(folder, alliance):
+    data = get_gov_stats(folder, alliance)
     values = list(data.values())
     export_header = [
         "ID",
         "NAME",
+        "ALLIANCE",
         "POWER",
         "KILLS POINTS",
         "DEAD",
@@ -176,11 +177,10 @@ def import_old_data():
 
 history, order_ids = import_old_data()
 
-folder = "alliance_gov_hs"
-data = parse_folder_alliance(folder)
-
 export_header = [
     "ID",
+    "NAME",
+    "ALLIANCE",
     "POWER",
     "KILLS POINTS",
     "DEAD",
@@ -193,11 +193,32 @@ export_header = [
 ]
 export_content = []
 export_content.append(export_header)
-for player_id in order_ids:
-    player = data.get(player_id, None)
-    if player is None:
-        export_content += [[player_id] + [0] * 9]
-    else:
-        export_content += [[player_id] + player[2:]]
-save_data_into_file(f"rok_gov_stats_{folder}_aggregated", export_content)
+export_content_new = []
+export_content_new.append(export_header)
 
+folders = [
+    ("alliance_gov_hs", "HS"),
+    ("alliance_gov_bw", "BW"),
+    ("alliance_gov_hw", "HW"),
+    ("alliance_gov_sa", "SA"),
+]
+all_govs = dict()
+for folder in folders:
+    f, a = folder
+    data = parse_folder_alliance(f, a)
+    all_govs = {**all_govs, **data}
+
+for player_id in order_ids:
+    player = all_govs.get(player_id, None)
+    if player is None:
+        export_content += [[player_id] + [0] * 11]
+    else:
+        export_content += [[player_id] + player[1:]]
+
+for gov_id in all_govs.keys():
+    if gov_id not in order_ids:
+        player = all_govs.get(gov_id, None)
+        export_content_new += [player]
+
+save_data_into_file(f"rok_gov_stats_all_aggregated", export_content)
+save_data_into_file(f"rok_gov_stats_all_new_gov", export_content_new)
