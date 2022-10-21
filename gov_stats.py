@@ -6,6 +6,7 @@ import pyexcel as pe
 import calendar
 import csv
 import cv2
+import glob
 import pytesseract
 import numpy as np
 import os
@@ -91,8 +92,8 @@ def save_data_into_file(filename, data):
 
 
 def get_gov_stats(folder, alliance):
-    folder_path = os.path.abspath(folder)
-    files = sorted(os.listdir(folder_path), reverse=True)
+    files = glob.glob(f"{folder}/*")
+    files = sorted(files, key=lambda t: os.stat(t).st_mtime, reverse=True)
 
     hm_gov = dict()
     current_gov_id = None
@@ -109,11 +110,12 @@ def get_gov_stats(folder, alliance):
                 extension != ".jpg":
             continue
 
-        file_path = os.path.abspath(f"{folder}/{a_file}")
+        file_path = os.path.abspath(f"{a_file}")
+        print(f"...processing {file_path}")
         # we treat the file only if it exists
         if not os.path.exists(file_path):
+            print(f"{file_path} does not exist!")
             continue
-        print(f"...processing {file_path}")
         image = cv2.imread(file_path)
         # 2 following screenshot should belong to one governor
         if i % 2 == 0:
