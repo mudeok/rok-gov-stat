@@ -58,3 +58,7 @@ id_kills = [
 (I used photoshop to get coordinate, take a screenshot, open with photoshop and draw rectangle selection to get coordinates x, y, width and height)
 
 
+# SUPER IMPORTANT NOTE 2 MEGA IMPORTANT:
+
+**The script is also working with aggregation data into old one by using an `export.csv` in a `./data` folder.
+Make sure to create a folder with an empty `export.csv` file inside**
