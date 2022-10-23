@@ -67,6 +67,7 @@ def get_text(image, locations: List[OCR_LOCATION]) -> List[str]:
         # if the result is an empty value, we skip it
         text = result.strip().replace("\n", "")
         if text == "":
+            values += ["ERROR, VERIFY!"]
             continue
 
         # if data is a number, we cast the value to an integer
