@@ -67,7 +67,10 @@ def get_text(image, locations: List[OCR_LOCATION]) -> List[str]:
         # if the result is an empty value, we skip it
         text = result.strip().replace("\n", "")
         if text == "":
-            values += ["ERROR, VERIFY!"]
+            if data_type_number:
+                values += [0]
+            else:
+                values += ["ERROR, VERIFY!"]
             continue
 
         # if data is a number, we cast the value to an integer
@@ -139,17 +142,18 @@ def parse_folder_alliance(folder, alliance):
     values = list(data.values())
     export_header = [
         "ID",
-        "NAME",
         "ALLIANCE",
+        "NAME",
         "POWER",
         "KILLS POINTS",
         "DEAD",
         "RSS GATHERED",
         "RSS ASSISTANCE",
         "ALLIANCE HELP",
-        "KILLS T3",
+        # "KILLS T3",
         "KILLS T4",
         "KILLS T5",
+        "RANGED POINTS",
     ]
     export_content = []
     export_content.append(export_header)
@@ -164,15 +168,19 @@ def import_old_data():
     filename = "data/export.csv"
     path_filename = os.path.abspath(filename)
     if not os.path.exists(path_filename):
-        return None, None
+        return None, []
     with open(path_filename, "r") as f:
         reader = csv.reader(f)
         for row in reader:
             player_id = row[0]
-            if player_id == "ID":
+            if player_id == "ID" or player_id == "":
                 continue
             else:
-                player_id = int(player_id)
+                try:
+                    player_id = int(player_id)
+                except Exception as e:
+                    print(row)
+                    raise e
             order_ids += [player_id]
             history[player_id] = row[1:]
     return history, order_ids
@@ -182,17 +190,18 @@ history, order_ids = import_old_data()
 
 export_header = [
     "ID",
-    "NAME",
     "ALLIANCE",
+    "NAME",
     "POWER",
     "KILLS POINTS",
     "DEAD",
     "RSS GATHERED",
     "RSS ASSISTANCE",
     "ALLIANCE HELP",
-    "KILLS T3",
+    # "KILLS T3",
     "KILLS T4",
     "KILLS T5",
+    "RANGED POINTS",
 ]
 export_content = []
 export_content.append(export_header)
