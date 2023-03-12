@@ -23,7 +23,7 @@ Then,
 
 - Save all screenshots inside a folder or multiple folders (e.g for each alliance)
 - Update in file the coordinates for OCR to your needs. *(e.g use photoshop to get x, y, width and height that are coordinates of a rectangle. It should cover the area to capture)*
-- Run the program
+- **Run the program `python gov_stats.py`**
 
 
 ### Informations
