@@ -219,36 +219,37 @@ def import_old_data():
     return history, order_ids
 
 
-# Step 1 - Retrieve old data if any
-history, order_ids = import_old_data()
+if __name__ == "__main__":
+    # Step 1 - Retrieve old data if any
+    history, order_ids = import_old_data()
 
-# Step 2 - Initialize list of governors
-existing_governors = []
-new_governors = []
+    # Step 2 - Initialize list of governors
+    existing_governors = []
+    new_governors = []
 
-# Step 3 - Parse all folders and save governors data
-all_govs = dict()
-for folder in folders:
-    folder_name, alliance_name = folder
-    data = parse_folder_alliance(folder_name, alliance_name)
-    all_govs = {**all_govs, **data}
+    # Step 3 - Parse all folders and save governors data
+    all_govs = dict()
+    for folder in folders:
+        folder_name, alliance_name = folder
+        data = parse_folder_alliance(folder_name, alliance_name)
+        all_govs = {**all_govs, **data}
 
-# Step 4 - Saving existing governors following the same order that old data imported
-for player_id in order_ids:
-    player = all_govs.get(player_id, None)
-    if player is None:
-        # we have an old player registered but no new data, we put 0 for each columns
-        existing_governors += [[player_id] + [0] * 11]
-    else:
-        existing_governors += [[player_id] + player[1:]]
+    # Step 4 - Saving existing governors following the same order that old data imported
+    for player_id in order_ids:
+        player = all_govs.get(player_id, None)
+        if player is None:
+            # we have an old player registered but no new data, we put 0 for each columns
+            existing_governors += [[player_id] + [0] * 11]
+        else:
+            existing_governors += [[player_id] + player[1:]]
 
-# Step 5 - Save new governors for which data was never collected
-for gov_id in all_govs.keys():
-    if gov_id not in order_ids:
-        player = all_govs.get(gov_id, None)
-        if player:
-            new_governors += [player]
+    # Step 5 - Save new governors for which data was never collected
+    for gov_id in all_govs.keys():
+        if gov_id not in order_ids:
+            player = all_govs.get(gov_id, None)
+            if player:
+                new_governors += [player]
 
-# Step 6 - Save files
-save_data_into_file(f"rok_gov_stats_all_aggregated", existing_governors)
-save_data_into_file(f"rok_gov_stats_all_new_gov", new_governors)
+    # Step 6 - Save files
+    save_data_into_file(f"rok_gov_stats_all_aggregated", existing_governors)
+    save_data_into_file(f"rok_gov_stats_all_new_gov", new_governors)
