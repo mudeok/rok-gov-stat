@@ -8,7 +8,6 @@ import csv
 import cv2
 import glob
 import pytesseract
-import numpy as np
 import os
 
 
