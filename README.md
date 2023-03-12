@@ -2,12 +2,6 @@
 
 😈 *Needs [Tesseract](https://tesseract-ocr.github.io/tessdoc/#compiling-and-installation) and [OpenCV](https://opencv.org/) installed*
 
-## Documentation
-
-🚧 **Work In Progress**
-
-Will do one day 😈😱
-
 ### Install deps
 
 ```
@@ -18,26 +12,38 @@ pip install -r requirements.txt
 
 ### Getting started
 
-`gov_stats.py` Line 199
+*You will need to adjust the script to your needs*
 
-```
-folders = [
-    ("alliance_gov_hs", "HS"),
-    ("alliance_gov_bw", "BW"),
-    ("alliance_gov_hw", "HW"),
-    ("alliance_gov_sa", "SA"),
-]
-```
--> This should be updated according to your case. "alliance_gov_hs" is a folder containing screenshot for "HS" alliance.
+**To work, you need to prepare two screenshots for each governor.**
+
+- **First screenshot** should be **More Info** screen.
+- **Second screenshot** should be **Governor Profile** screen.
+
+Then,
+
+- Save all screenshots inside a folder or multiple folders (e.g for each alliance)
+- Update in file the coordinates for OCR to your needs. *(e.g use photoshop to get x, y, width and height that are coordinates of a rectangle. It should cover the area to capture)*
+- Run the program
+
+
+### Informations
+
+The programm will do:
+
+- Step 1 - Retrieve old data if any
+- Step 2 - Initialize list of governors
+- Step 3 - Parse all folders and save governors data
+- Step 4 - Saving existing governors following the same order that old data imported
+- Step 5 - Save new governors for which data was never collected
+- Step 6 - Save files
+
 
 # SUPER IMPORTANT NOTE:
-screenshot should be taken in order starting by "MORE INFO" screen following by "GOVERNOR PROFILE" screen (with the kill points open)
 
-Make sure to test with only one alliance and one governor.
+**screenshot should be taken in order starting by "MORE INFO" screen following by "GOVERNOR PROFILE" screen (with the kill points open)**
 
-`gov_stats.py` Line 19
 ```
-name_dead = [
+more_info_screen = [
     OCR_LOCATION("name", (1142, 675, 462, 95), False),
     OCR_LOCATION("power", (1701, 675, 325, 95), True),
     OCR_LOCATION("kills_points", (2216, 675, 258, 95), True),
@@ -47,18 +53,19 @@ name_dead = [
     OCR_LOCATION("alliance_help_times", (1789, 1475, 570, 65), True),
 ]
 
-id_kills = [
+governor_profile_screen = [
     OCR_LOCATION("id", (1650, 822, 145, 41), True),
     OCR_LOCATION("kills_t3", (1763, 1404, 336, 52), True),
     OCR_LOCATION("kills_t4", (1763, 1464, 336, 52), True),
     OCR_LOCATION("kills_t5", (1763, 1523, 336, 52), True),
 ]
 ```
+
 -> This are coordinates for data and should be the same for all screenshot!
 (I used photoshop to get coordinate, take a screenshot, open with photoshop and draw rectangle selection to get coordinates x, y, width and height)
 
 
 # SUPER IMPORTANT NOTE 2 MEGA IMPORTANT:
 
-**The script is also working with aggregation data into old one by using an `export.csv` in a `./data` folder.
-Make sure to create a folder with an empty `export.csv` file inside**
+**The script is also working with aggregation data into old one by using an `export.csv` in a `./data` folder. Make sure to create a folder with an empty `export.csv` file inside**
+
