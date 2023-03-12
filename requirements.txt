@@ -7,3 +7,4 @@ pyexcel-io==0.6.6
 pyexcel-xlsx==0.6.0
 pyparsing==3.0.9
 pytesseract==0.3.10
+thefuzz==0.19.0

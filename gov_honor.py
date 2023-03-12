@@ -1,21 +1,18 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
 from typing import List
-from collections import namedtuple
 from thefuzz import fuzz
 import pyexcel as pe
 import calendar
 import csv
 import cv2
-import pytesseract
-import numpy as np
 import os
 
-OCR_LOCATION = namedtuple("ORC_LOCATION", ["id", "bbox", "number"])
-TESSERACT_ARGS_NUMBER = "--oem 3 --psm 7 digits -c tessedit_char_whitelist=0123456789"
-TESSERACT_ARGS_TEXT = "--oem 3 --psm 7"
+from gov_stats import OCR_LOCATION
+from gov_stats import get_text
 
-# actually a list of 5 players by screenshot
+
+# Sctually a list of 5 players by screenshot from the honor points alliance ranking view
 ocr_locations = [
     [
         OCR_LOCATION("name", (1749, 916, 259, 109), False),
@@ -40,52 +37,6 @@ ocr_locations = [
 ]
 
 
-def get_grayscale(image):
-    # Returns image in gray scale mode, easier to extract data
-    return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-
-def get_text(image, locations: List[OCR_LOCATION]) -> List[str]:
-    """ For an image, locations refer to all possible data we want to extract.
-    Return a list of values extracted from provided locations.
-    """
-    values = []
-
-    for location in locations:
-        # extract coordinates x, y, width and height of the desired area
-        (x, y, w, h) = location.bbox
-
-        # use coordinates above to select the desired area
-        cropped_image = image[y:y + h, x:x + w]
-
-        gray_image = get_grayscale(cropped_image)
-
-        # if the data we want to extract is a number or a string
-        data_type_number = location.number is True
-        if data_type_number:
-            config = TESSERACT_ARGS_NUMBER
-        else:
-            config = TESSERACT_ARGS_TEXT
-
-        result = pytesseract.image_to_string(gray_image, config=config)
-
-        # if the result is an empty value, we skip it
-        text = result.strip().replace("\n", "")
-        if text == "":
-            continue
-
-        # if data is a number, we cast the value to an integer
-        if data_type_number:
-            try:
-                text = int(text)
-            except Exception as e:
-                print(e)
-
-        values += [text]
-
-    return values
-
-
 def save_data_into_file(filename, data) -> None:
     # Save data into an .xlsx file
     d_now = datetime.utcnow()
@@ -96,10 +47,9 @@ def save_data_into_file(filename, data) -> None:
     pe.save_as(array=data, dest_file_name=file_destination)
 
 
-def get_rankings(folder: str, locations: List[List[OCR_LOCATION]], db):
+def get_honor_pts(folder: str, locations: List[List[OCR_LOCATION]], db):
     folder_path = os.path.abspath(folder)
     files = os.listdir(folder_path)
-    files_values = []
 
     for a_file in files:
         filename, extension = os.path.splitext(a_file)
@@ -113,105 +63,113 @@ def get_rankings(folder: str, locations: List[List[OCR_LOCATION]], db):
             continue
 
         file_path = os.path.abspath(f"{folder}/{a_file}")
+        print(f"...processing {file_path}")
+
         # we treat the file only if it exists
         if not os.path.exists(file_path):
+            print(f"{file_path} does not exist!")
             continue
-        print(f"...processing {file_path}")
+
         image = cv2.imread(file_path)
+
         for location in locations:
             values = get_text(image, location)
+            # we should get name and points
             if len(values) != 2:
                 continue
-            name = values[0]
-            if name not in db.keys():
-                db[name] = dict()
-            db[name][folder] = values[1]
-            files_values += [values]
+            governor_name = values[0]
+            governor_pts = values[1]
+            db[governor_name] = governor_pts
 
     return db
 
+
 def import_old_data():
+    """ This is slightly different from the gov_stats.
+    Here, we use also the column name to match with honor points.
+    """
     history = dict()
     order_ids = []
+    names = []
     filename = "data/export.csv"
     path_filename = os.path.abspath(filename)
     if not os.path.exists(path_filename):
-        return None, None
+        return None, None, None
     with open(path_filename, "r") as f:
         reader = csv.reader(f)
         for row in reader:
             player_id = row[0]
-            if player_id == "ID":
+            if player_id == "ID" or player_id == "":
                 continue
             else:
-                player_id = int(player_id)
+                try:
+                    player_id = int(player_id)
+                except Exception as e:
+                    print(row)
+                    raise e
             order_ids += [player_id]
+            names += [row[1]]
             history[player_id] = row[1:]
-    return history, order_ids
+    return history, order_ids, names
 
 
-history, order_ids = import_old_data()
+if __name__ == "__main__":
+    # Step 1 - Retrieve old data if any
+    history, order_ids, names = import_old_data()
 
-export_header = [
-    "NAME",
-    "ALLIANCE",
-    "HONOR PTS",
-]
-export_content = []
-export_content.append(export_header)
+    # Step 2 - Initialize
+    folders = [
+        ("honor_hs", "HS"),
+        ("honor_bw", "BW"),
+        ("honor_dg", "DG"),
+        ("honor_hp", "HP"),
+    ]
+    all_govs = dict()
+    all_data = []
+    existing_governors = []
 
-folders = [
-    ("honor_hs", "HS"),
-    ("honor_bw", "BW"),
-    ("honor_hw", "HW"),
-    ("honor_sa", "SA"),
-]
-all_govs = dict()
+    # Step 3 - Parse all folders and save governors data
+    for folder in folders:
+        folder_name, alliance_name = folder
+        governors = dict()
+        governors = get_honor_pts(folder_name, ocr_locations, governors)
+        for name in governors:
+            points = governors.get(name, 0)
+            a_player = [name, alliance_name, points]
+            db = dict()
+            db[name] = points
+            all_govs = {**all_govs, **db}
+            all_data += [a_player]
 
-for folder in folders:
-    f, a = folder
-    rankings = dict()
-    rankings = get_rankings(f, ocr_locations, rankings)
-    for k in rankings:
-        # colum name
-        name = k
-        a_player = [name, a]
-        points = rankings[k]
-
-        db = dict()
-        db[name] = 0
-        if f in points:
-            a_player += [points[f]]
-            db[name] = points[f]
-        else:
-            a_player += [0]
-        all_govs = {**all_govs, **db}
-        export_content += [a_player]
-
-aggregated = []
-aggregated.append([
-    "ID",
-    "LAST REGISTERED NAME",
-    "HONOR PTS",
-])
-for player_id in order_ids:
-    player = history[player_id]
-    last_registerd_name = player[44]
-    if last_registerd_name == "0" or last_registerd_name == 0:
-        aggregated += [[player_id, last_registerd_name, 0]]
-        continue
+    # Step 4 - Saving existing governors
     all_names = all_govs.keys()
-    find_player = False
-    for name in all_names:
-        if fuzz.partial_ratio(last_registerd_name, name) > 90:
-            aggregated += [[player_id, last_registerd_name, all_govs[name]]]
-            find_player = True
-            break
-    if find_player is False:
-        aggregated += [[player_id, last_registerd_name, 0]]
+    for player_id in order_ids:
+        player = history[player_id]
+        # easider to keep first name
+        last_name = player[0]
+        if last_name == "0" or last_name == 0:
+            existing_governors += [[player_id, last_name, 0]]
+            continue
 
-# we save the final data, need to clean manually for weird name
-save_data_into_file(f"rok_gov_honor_all", export_content)
-save_data_into_file(f"rok_gov_honor_all_aggregated", aggregated)
+        find_player = False
+        for name in all_names:
+            if fuzz.partial_ratio(last_name, name) > 90:
+                pts = all_govs[name]
+                existing_governors += [[player_id, last_name, pts]]
+                find_player = True
+                break
 
+        if find_player is False:
+            existing_governors += [[player_id, last_name, 0]]
 
+    all_governor_pts = []
+    all_governor_pts.append(["NAME", "ALLIANCE", "HONOR PTS"])
+    all_governor_pts += all_data
+
+    aggregated = []
+    aggregated.append(["ID", "LAST REGISTERED NAME", "HONOR PTS"])
+    aggregated += existing_governors
+
+    # Step 6 - Save files
+    save_data_into_file(f"rok_gov_honor_all", all_governor_pts)
+    save_data_into_file(f"rok_gov_honor_all_aggregated", aggregated)
