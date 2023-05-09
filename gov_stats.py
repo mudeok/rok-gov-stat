@@ -121,6 +121,13 @@ def get_gov_stats(folder, alliance):
     files = sorted(files, key=lambda t: os.stat(t).st_mtime, reverse=True)
     root_path = ""
 
+    # IMPORTANT: If file's order is wrong, please use the 3 lines below
+    # instead of the 3 live above.
+    #
+    # folder_path = os.path.abspath(folder)
+    # files = sorted(os.listdir(folder_path), reverse=True)
+    # root_path = f"{folder}/"
+
     governors = dict()
     current_gov_id = None
 
