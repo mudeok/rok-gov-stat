@@ -119,6 +119,7 @@ def save_data_into_file(filename, data):
 def get_gov_stats(folder, alliance):
     files = glob.glob(f"{folder}/*")
     files = sorted(files, key=lambda t: os.stat(t).st_mtime, reverse=True)
+    root_path = ""
 
     governors = dict()
     current_gov_id = None
@@ -135,7 +136,7 @@ def get_gov_stats(folder, alliance):
                 extension != ".jpg":
             continue
 
-        file_path = os.path.abspath(f"{a_file}")
+        file_path = os.path.abspath(f"{root_path}{a_file}")
         print(f"...processing {file_path}")
 
         # we treat the file only if it exists
